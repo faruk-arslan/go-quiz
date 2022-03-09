@@ -1,17 +1,21 @@
 package main
 
 import (
+	"flag"
 	"encoding/csv"
 	"fmt"
 	"log"
 	"os"
-	"strconv"
 	"time"
+	"strings"
 )
 
 func main() {
+	// Use flag to show a hint to the user when used the -h flag
+	fileName := flag.String("csv","problems.csv","csv file to read the questions and answers")
+	flag.Parse()
 
-	file, err := os.Open("questions.csv") // For read access.
+	file, err := os.Open(*fileName) // For read access.
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -23,6 +27,9 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	// Make a slice which contains the problems in a 'problem' struct type.
+	problems := makeStructSlice(records)
+	fmt.Println(problems)
 
 	// fmt.Println(records)
 	// fmt.Println(len(records))
@@ -38,26 +45,28 @@ func main() {
 	// 	fmt.Println(records, "is something else entirely")
 	// }
 
-	var point float32 = 0
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
 	done := make(chan bool)
+	correctAnswers := 0
 
-	for i := 0; i < len(records); i++ {
-		var tempAnswer int
+	for i, p := range problems {
+		var tempAnswer string
 
 		go func() {
-			fmt.Printf("Question %d: %v=? \n", i+1, records[i][0])
+			fmt.Printf("Question %d: %v=? \n", i+1, p.q)
 			fmt.Scan(&tempAnswer)
-
+			if(tempAnswer == p.a){
+				correctAnswers++
+			}
 			// convert the answer string (from slice) to int
-			intAnswer, err := strconv.Atoi(records[i][1])
-			if err != nil {
-				log.Fatal("Can not convert the answer to int")
-			}
-			if tempAnswer == intAnswer {
-				point += 8.333333333333333
-			}
+			// intAnswer, err := strconv.Atoi(records[i][1])
+			// if err != nil {
+			// 	log.Fatal("Can not convert the answer to int")
+			// }
+			// if tempAnswer == intAnswer {
+			// 	correctAnswers++
+			// }
 			// continue to next iteration
 			done <- true
 		}()
@@ -73,5 +82,22 @@ func main() {
 			fmt.Println("Time is out, next question: ")
 		}
 	}
-	fmt.Println("Your score is: ", point)
+	fmt.Printf("You scored %d out of %d", correctAnswers, len(records))
+}
+
+// Define a struct for the problems.
+type problem struct{
+	q string
+	a string
+}
+
+func makeStructSlice(records [][]string) []problem{
+	// Make a slice which contains the problems in a 'problem' struct type.
+	problems := make([]problem, len(records))
+	for i,record := range records{
+		fmt.Println(i,record)
+		// If we know the length, it's more efficient than append.
+		problems[i] = problem{q:record[0], a:strings.Trim(record[1]," ")}
+	}
+	return problems
 }
