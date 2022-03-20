@@ -13,6 +13,7 @@ import (
 func main() {
 	// Use flag to show a hint to the user when used the -h flag
 	fileName := flag.String("csv","problems.csv","csv file to read the questions and answers")
+	timeLimit := flag.Int("time", 30, "time limit in seconds")
 	flag.Parse()
 
 	file, err := os.Open(*fileName) // For read access.
@@ -45,8 +46,7 @@ func main() {
 	// 	fmt.Println(records, "is something else entirely")
 	// }
 
-	ticker := time.NewTicker(30 * time.Second)
-	defer ticker.Stop()
+	timer := time.NewTimer(time.Duration(*timeLimit) * time.Second)
 	done := make(chan bool)
 	correctAnswers := 0
 
@@ -75,12 +75,14 @@ func main() {
 		case <-done:
 			// if done true, continue to the next iteration
 			fmt.Println("Next question!")
+			timer = time.NewTimer(time.Duration(*timeLimit) * time.Second)
 			continue
-		case t := <-ticker.C:
+		case t := <-timer.C:
 			// ticker.C is triggered after timeout
 			fmt.Println("Current time: ", t)
 			fmt.Println("Time is out, next question: ")
-		}
+			timer = time.NewTimer(time.Duration(*timeLimit) * time.Second)
+ 		}
 	}
 	fmt.Printf("You scored %d out of %d", correctAnswers, len(records))
 }
